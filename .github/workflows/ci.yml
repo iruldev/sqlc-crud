@@ -14,20 +14,6 @@ jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql
-        command: --default-authentication-plugin=mysql_native_password
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: learn
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
-
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -36,6 +22,15 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v3
+
+      - name: Shutdown Ubuntu MySQL (SUDO)
+        run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
+
+      - name: Set up MySQL
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          mysql database: 'learn'
+          mysql root password: 'root'
 
       - name: Run migrations
         run: make migrateup
