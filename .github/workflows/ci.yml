@@ -19,7 +19,7 @@ jobs:
       mysql:
         image: mysql
         command: --default-authentication-plugin=mysql_native_password
-        environment:
+        env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: learn
         options: >-
