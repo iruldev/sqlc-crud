@@ -14,6 +14,16 @@ jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_DATABASE: learn
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -26,15 +36,15 @@ jobs:
       - name: Shutdown Ubuntu MySQL (SUDO)
         run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
 
-      - name: Set up MySQL
-        uses: mirromutth/mysql-action@v1.1
-        with:
-          host port: 3306
-          container port: 3306
-          mysql database: 'learn'
-          mysql root password: 'root'
-          mysql user: 'root'
-          mysql password: 'root'
+#      - name: Set up MySQL
+#        uses: mirromutth/mysql-action@v1.1
+#        with:
+#          host port: 3306
+#          container port: 3306
+#          mysql database: 'learn'
+#          mysql root password: 'root'
+#          mysql user: 'root'
+#          mysql password: 'root'
 
       - name: Install golang-migrate
         run: | 
