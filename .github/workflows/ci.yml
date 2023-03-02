@@ -29,8 +29,12 @@ jobs:
       - name: Set up MySQL
         uses: mirromutth/mysql-action@v1.1
         with:
+          host port: 3306
+          container port: 3306
           mysql database: 'learn'
           mysql root password: 'root'
+          mysql user: 'root'
+          mysql password: 'root'
 
       - name: Install golang-migrate
         run: | 
