@@ -3,13 +3,14 @@ package api
 import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
 	database "github.com/iruldev/sqlc-crud/database/sqlc"
 	"net/http"
 )
 
 type createAccountRequest struct {
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR"`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 func (server *Server) createAccount(ctx *gin.Context) {
@@ -27,6 +28,13 @@ func (server *Server) createAccount(ctx *gin.Context) {
 
 	accountId, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			switch mysqlErr.Number {
+			case 1452:
+				ctx.JSON(http.StatusForbidden, errorResponse(err))
+				return
+			}
+		}
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
