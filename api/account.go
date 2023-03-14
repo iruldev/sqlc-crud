@@ -2,14 +2,15 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	database "github.com/iruldev/sqlc-crud/database/sqlc"
+	"github.com/iruldev/sqlc-crud/token"
 	"net/http"
 )
 
 type createAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
@@ -20,30 +21,25 @@ func (server *Server) createAccount(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := database.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Balance:  0,
 		Currency: req.Currency,
 	}
 
-	accountId, err := server.store.CreateAccount(ctx, arg)
+	_, err := server.store.CreateAccount(ctx, arg)
 	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
-			switch mysqlErr.Number {
-			case 1452:
-				ctx.JSON(http.StatusForbidden, errorResponse(err))
-				return
-			}
+		if _, ok := err.(*mysql.MySQLError); !ok {
+			//switch mysqlErr.Number {
+			//case 1452:
+			//}
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
 		}
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
 	}
 
-	account, err := server.store.GetAccount(ctx, accountId)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
+	account, _ := server.store.GetAccountByOwner(ctx, authPayload.Username)
 
 	ctx.JSON(http.StatusOK, account)
 }
@@ -69,12 +65,19 @@ func (server *Server) getAccount(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err = errors.New("account doesn't belong to the authenticated user")
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
 	ctx.JSON(http.StatusOK, account)
 }
 
 type listAccountRequest struct {
 	Page  int32 `form:"page" binding:"required,min=1"`
-	Limit int32 `form:"limit" binding:"required,min=5"`
+	Limit int32 `form:"limit" binding:"required,min=5,max=100"`
 }
 
 func (server *Server) listAccount(ctx *gin.Context) {
@@ -84,14 +87,17 @@ func (server *Server) listAccount(ctx *gin.Context) {
 		return
 	}
 
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	//log.Println(authPayload)
 	arg := database.ListAccountParams{
+		Owner:  authPayload.Username,
 		Limit:  req.Limit,
 		Offset: (req.Page - 1) * req.Limit,
 	}
 
 	accounts, err := server.store.ListAccount(ctx, arg)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 

@@ -9,8 +9,13 @@ INSERT INTO accounts (
 SELECT * FROM accounts
 WHERE id = ? LIMIT 1;
 
+-- name: GetAccountByOwner :one
+SELECT * FROM accounts
+WHERE owner = ? LIMIT 1;
+
 -- name: ListAccount :many
 SELECT * FROM accounts
+WHERE owner = ?
 ORDER BY id
 LIMIT ?
 OFFSET ?;
